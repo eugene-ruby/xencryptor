@@ -1,6 +1,6 @@
 # xencryptor
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/eugene-ruby/xencryptor)](https://goreportcard.com/report/github.com/eugene-ruby/xencryptor)  
+[![Go Report Card](https://goreportcard.com/badge/github.com/eugene-ruby/xencryptor)](https://goreportcard.com/report/github.com/eugene-ruby/xencryptor) 
 [![Build Status](https://github.com/eugene-ruby/xencryptor/actions/workflows/ci.yml/badge.svg)](https://github.com/eugene-ruby/xencryptor/actions)  
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -23,7 +23,7 @@ go install github.com/eugene-ruby/xencryptor/cmd/xencryptor@latest
 
 Add as a library dependency:
 ```bash
-go get github.com/eugene-ruby/xencryptor/pkg/xsecrets
+go get github.com/eugene-ruby/xencryptor/xsecrets
 ```
 
 ## CLI Usage
@@ -56,7 +56,7 @@ echo "BASE64_CIPHERTEXT" | xencryptor -encrypt pkp \
 ```go
 import (
     "fmt"
-    "github.com/eugene-ruby/xencryptor/pkg/xsecrets"
+    "github.com/eugene-ruby/xencryptor/xsecrets"
 )
 
 func main() {
@@ -88,7 +88,7 @@ func main() {
 
 Run unit tests:
 ```bash
-go test ./pkg/xsecrets
+go test ./xsecrets
 ```
 
 ## Contributing

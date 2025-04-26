@@ -42,4 +42,4 @@ jobs:
 
       - name: Run tests
         run: |
-          go test ./pkg/xsecrets --timeout 5m -v
+          go test ./xsecrets --timeout 5m -v
