@@ -29,48 +29,72 @@ func TestDeriveKey(t *testing.T) {
 	}
 }
 
-// TestEncryptDecryptWithKey ensures that EncryptWithKey and DecryptWithKey are inverses
-// for a given key and plaintext.
-func TestEncryptDecryptWithKey(t *testing.T) {
+// TestEncryptBase64WithKey_DecryptBase64WithKey checks full cycle with base64 encoding.
+func TestEncryptBase64WithKey_DecryptBase64WithKey(t *testing.T) {
 	master := []byte("anothermaster")
 	label := "testlabel"
 	key := DeriveKey(master, label)
 
-	plaintext := []byte("The quick brown fox jumps over the lazy dog")
+	plaintext := "The quick brown fox jumps over the lazy dog"
 
-	// Encrypt the plaintext
-	cipherText, err := EncryptWithKey(plaintext, key)
+	// Encrypt to base64 string
+	cipherTextBase64, err := EncryptBase64WithKey([]byte(plaintext), key)
 	if err != nil {
-		t.Fatalf("EncryptWithKey failed: %v", err)
+		t.Fatalf("EncryptBase64WithKey failed: %v", err)
 	}
 
 	// Ensure ciphertext is base64-encoded
-	if _, err := base64.RawURLEncoding.DecodeString(cipherText); err != nil {
-		t.Errorf("EncryptWithKey: output is not valid base64: %v", err)
+	if _, err := base64.RawURLEncoding.DecodeString(cipherTextBase64); err != nil {
+		t.Errorf("EncryptBase64WithKey: output is not valid base64: %v", err)
 	}
 
-	// Decrypt with the same key
-	decrypted, err := DecryptWithKey(cipherText, key)
+	// Decrypt
+	decrypted, err := DecryptBase64WithKey(cipherTextBase64, key)
 	if err != nil {
-		t.Fatalf("DecryptWithKey failed: %v", err)
+		t.Fatalf("DecryptBase64WithKey failed: %v", err)
 	}
 
-	if !bytes.Equal([]byte(decrypted), plaintext) {
+	if string(decrypted) != plaintext {
 		t.Errorf("Round-trip plaintext mismatch\nexpected: %s\ngot: %s", plaintext, decrypted)
 	}
 }
 
-// TestDecryptWithKey_InvalidBase64 checks error on non-base64 input.
-func TestDecryptWithKey_InvalidBase64(t *testing.T) {
+// TestEncryptBytesWithKey_DecryptBytesWithKey checks encryption without base64 layer.
+func TestEncryptBytesWithKey_DecryptBytesWithKey(t *testing.T) {
+	master := []byte("simplemaster")
+	label := "testbytes"
+	key := DeriveKey(master, label)
+
+	plaintext := "Hello world!"
+
+	// Encrypt to raw bytes
+	cipherTextBytes, err := EncryptBytesWithKey([]byte(plaintext), key)
+	if err != nil {
+		t.Fatalf("EncryptBytesWithKey failed: %v", err)
+	}
+
+	// Decrypt
+	decrypted, err := DecryptBytesWithKey(cipherTextBytes, key)
+	if err != nil {
+		t.Fatalf("DecryptBytesWithKey failed: %v", err)
+	}
+
+	if string(decrypted) != plaintext {
+		t.Errorf("Round-trip plaintext mismatch\nexpected: %s\ngot: %s", plaintext, decrypted)
+	}
+}
+
+// TestDecryptBase64WithKey_InvalidBase64 checks error on invalid base64 input.
+func TestDecryptBase64WithKey_InvalidBase64(t *testing.T) {
 	key := DeriveKey([]byte("mk"), "lbl")
-	_, err := DecryptWithKey("not_base64!", key)
+	_, err := DecryptBase64WithKey("not_base64!", key)
 	if err == nil {
 		t.Errorf("Expected base64 decode error, got: %v", err)
 	}
 }
 
-// TestDecryptWithKey_WrongKey verifies that decryption with a wrong key fails.
-func TestDecryptWithKey_WrongKey(t *testing.T) {
+// TestDecryptBase64WithKey_WrongKey checks decryption fails with wrong key.
+func TestDecryptBase64WithKey_WrongKey(t *testing.T) {
 	master := []byte("mk1")
 	label := "lbl"
 	key1 := DeriveKey(master, label)
@@ -78,14 +102,14 @@ func TestDecryptWithKey_WrongKey(t *testing.T) {
 	otherMaster := []byte("mk2")
 	key2 := DeriveKey(otherMaster, label)
 
-	plaintext := []byte("sample text")
-	cipherText, err := EncryptWithKey(plaintext, key1)
+	plaintext := "sample text"
+
+	cipherTextBase64, err := EncryptBase64WithKey([]byte(plaintext), key1)
 	if err != nil {
-		t.Fatalf("EncryptWithKey failed: %v", err)
+		t.Fatalf("EncryptBase64WithKey failed: %v", err)
 	}
 
-	// Attempt decrypt with a different key
-	_, err = DecryptWithKey(cipherText, key2)
+	_, err = DecryptBase64WithKey(cipherTextBase64, key2)
 	if err == nil {
 		t.Error("Expected decryption to fail with wrong key, but it succeeded")
 	}

@@ -63,7 +63,7 @@ func EncryptPrivateRSA(plain []byte, masterKey, label string) (string, error) {
 	}
 
 	enKey := DeriveKey([]byte(masterKey), label)
-	cipherText, err := EncryptWithKey(plain, enKey)
+	cipherText, err := EncryptBase64WithKey(plain, enKey)
 	if err != nil {
 		return "", fmt.Errorf("encrypt failed: %w", err)
 	}
@@ -73,12 +73,12 @@ func EncryptPrivateRSA(plain []byte, masterKey, label string) (string, error) {
 
 func DecryptPrivateRSA(encPrivateKey, masterKey, label string) (*rsa.PrivateKey, error) {
 	enKey := DeriveKey([]byte(masterKey), label)
-	plaintext, err := DecryptWithKey(encPrivateKey, enKey)
+	decryptedBytes, err := DecryptBase64WithKey(encPrivateKey, enKey)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt failed: %w", err)
 	}
 
-	pemBlock, _ := pem.Decode([]byte(plaintext))
+	pemBlock, _ := pem.Decode(decryptedBytes)
 	if pemBlock == nil {
 		return nil, errors.New("empty private key")
 	} else if pemBlock.Type != "RSA PRIVATE KEY" {

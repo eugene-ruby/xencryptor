@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"io"
 )
 
 func DeriveKey(master []byte, label string) []byte {
@@ -17,44 +16,56 @@ func DeriveKey(master []byte, label string) []byte {
 	return h.Sum(nil)[:32]
 }
 
-func EncryptWithKey(plainText, key []byte) (string, error) {
+func EncryptBytesWithKey(plainText, key []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", err
+		return nil, fmt.Errorf("cipher init failed: %w", err)
 	}
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", err
+		return nil, fmt.Errorf("GCM init failed: %w", err)
 	}
 	nonce := make([]byte, gcm.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+	if _, err := rand.Read(nonce); err != nil {
+		return nil, fmt.Errorf("nonce generation failed: %w", err)
+	}
+	cipherText := gcm.Seal(nonce, nonce, []byte(plainText), nil)
+	return cipherText, nil
+}
+
+func EncryptBase64WithKey(plainText, key []byte) (string, error) {
+	cipherText, err := EncryptBytesWithKey(plainText, key)
+	if err != nil {
 		return "", err
 	}
-	cipherText := gcm.Seal(nonce, nonce, plainText, nil)
 	return base64.RawURLEncoding.EncodeToString(cipherText), nil
 }
 
-func DecryptWithKey(encoded string, key []byte) (string, error) {
+func DecryptBase64WithKey(encoded string, key []byte) ([]byte, error) {
 	ciphertext, err := base64.RawURLEncoding.DecodeString(encoded)
 	if err != nil {
-		return "", fmt.Errorf("base64 decode failed: %w", err)
+		return nil, fmt.Errorf("base64 decode failed: %w", err)
 	}
+	return DecryptBytesWithKey(ciphertext, key)
+}
+
+func DecryptBytesWithKey(ciphertext, key []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", fmt.Errorf("cipher init failed: %w", err)
+		return nil, fmt.Errorf("cipher init failed: %w", err)
 	}
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", fmt.Errorf("GCM init failed: %w", err)
+		return nil, fmt.Errorf("GCM init failed: %w", err)
 	}
 	if len(ciphertext) < gcm.NonceSize() {
-		return "", fmt.Errorf("ciphertext too short")
+		return nil, fmt.Errorf("ciphertext too short")
 	}
 	nonce := ciphertext[:gcm.NonceSize()]
 	data := ciphertext[gcm.NonceSize():]
-	plain, err := gcm.Open(nil, nonce, data, nil)
+	decryptedBytes, err := gcm.Open(nil, nonce, data, nil)
 	if err != nil {
-		return "", fmt.Errorf("decryption failed: %w", err)
+		return nil, fmt.Errorf("decryption failed: %w", err)
 	}
-	return string(plain), nil
+	return decryptedBytes, nil
 }

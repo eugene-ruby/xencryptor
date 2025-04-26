@@ -84,6 +84,16 @@ func main() {
 }
 ```
 
+## Symmetric Encryption Functions
+
+| Function | Input | Output | Description |
+|:---------|:------|:-------|:------------|
+| `EncryptBytesWithKey([]byte, []byte)` | plaintext, key | ciphertext []byte | Encrypts raw bytes, returns ciphertext bytes |
+| `EncryptBase64WithKey([]byte, []byte)` | plaintext, key | base64 string | Encrypts bytes and encodes ciphertext as base64 |
+| `DecryptBytesWithKey([]byte, []byte)` | ciphertext, key | plaintext []byte | Decrypts ciphertext bytes into plaintext bytes |
+| `DecryptBase64WithKey(string, []byte)` | base64 ciphertext, key | plaintext []byte | Decodes base64 and decrypts ciphertext |
+
+
 ## Testing
 
 Run unit tests:
