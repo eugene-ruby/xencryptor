@@ -10,50 +10,60 @@ import (
 	"os"
 )
 
-func GeneratePEMFiles(name string) error {
+// GenerateKeyPair generates RSA private and public key PEM bytes in memory.
+func GenerateKeyPair() ([]byte, []byte, error) {
 	privKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
-		return fmt.Errorf("failed to generate RSA key: %w", err)
+		return nil, nil, fmt.Errorf("failed to generate RSA key: %w", err)
 	}
 
-	privFile, err := os.Create(name + ".pem")
-	if err != nil {
-		return fmt.Errorf("failed to create private key file: %w", err)
-	}
-	defer privFile.Close()
-
+	// Encode private key to PEM
 	privBlock := &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(privKey),
 	}
-	if err := pem.Encode(privFile, privBlock); err != nil {
-		return fmt.Errorf("failed to write private key PEM: %w", err)
-	}
+	pemPrivateBytes := pem.EncodeToMemory(privBlock)
 
-	pubFile, err := os.Create(name + "_pub.pem")
-	if err != nil {
-		return fmt.Errorf("failed to create public key file: %w", err)
-	}
-	defer pubFile.Close()
-
+	// Encode public key to PEM
 	pubASN1, err := x509.MarshalPKIXPublicKey(&privKey.PublicKey)
 	if err != nil {
-		return fmt.Errorf("failed to marshal public key: %w", err)
+		return nil, nil, fmt.Errorf("failed to marshal public key: %w", err)
 	}
-
 	pubBlock := &pem.Block{
 		Type:  "PUBLIC KEY",
 		Bytes: pubASN1,
 	}
-	if err := pem.Encode(pubFile, pubBlock); err != nil {
-		return fmt.Errorf("failed to write public key PEM: %w", err)
+	pemPublicBytes := pem.EncodeToMemory(pubBlock)
+
+	return pemPrivateBytes, pemPublicBytes, nil
+}
+
+// GeneratePEMFiles generates RSA keys and saves them into PEM files.
+func GeneratePEMFiles(name string) error {
+	privPEM, pubPEM, err := GenerateKeyPair()
+	if err != nil {
+		return fmt.Errorf("failed to create key pair: %w", err)
+	}
+
+	// Save private key
+	err = os.WriteFile(name+".pem", privPEM, 0600)
+	if err != nil {
+		return fmt.Errorf("failed to write private key: %w", err)
+	}
+
+	// Save public key
+	err = os.WriteFile(name+"_pub.pem", pubPEM, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write public key: %w", err)
 	}
 
 	return nil
 }
 
+// EncryptPrivateRSA encrypts an RSA private key PEM using a derived AES key.
+// It expects a valid PEM-encoded RSA private key as input.
+// The masterKey and label are used to derive the AES encryption key.
 func EncryptPrivateRSA(plain []byte, masterKey, label string) (string, error) {
-
 	pemBlock, _ := pem.Decode(plain)
 	if pemBlock == nil {
 		return "", fmt.Errorf("empty private key")
@@ -71,6 +81,9 @@ func EncryptPrivateRSA(plain []byte, masterKey, label string) (string, error) {
 	return cipherText, nil
 }
 
+// DecryptPrivateRSA decrypts an encrypted RSA private key string back to a *rsa.PrivateKey.
+// It expects a base64-encoded encrypted key and uses the masterKey and label
+// to derive the AES decryption key.
 func DecryptPrivateRSA(encPrivateKey, masterKey, label string) (*rsa.PrivateKey, error) {
 	enKey := DeriveKey([]byte(masterKey), label)
 	decryptedBytes, err := DecryptBase64WithKey(encPrivateKey, enKey)
