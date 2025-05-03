@@ -1,112 +1,144 @@
 # xencryptor
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/eugene-ruby/xencryptor)](https://goreportcard.com/report/github.com/eugene-ruby/xencryptor) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/eugene-ruby/xencryptor)](https://goreportcard.com/report/github.com/eugene-ruby/xencryptor)  
 [![Build Status](https://github.com/eugene-ruby/xencryptor/actions/workflows/ci.yml/badge.svg)](https://github.com/eugene-ruby/xencryptor/actions)  
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-`xencryptor` is a Go library and CLI tool for generating RSA key pairs and securely encrypting/decrypting private keys using AES-GCM with HMAC-SHA256–based key derivation.
+**`xencryptor`** is a Go library and CLI tool for working with RSA and AES encryption.  
+It supports safe keypair generation, key wrapping, base64 encoding, and fast symmetric encryption — with test coverage and a simple API.
 
-## Features
+---
 
-- Generate 4096‑bit RSA key pairs as PEM files
-- AES‑GCM encryption & decryption of RSA private keys
-- Deterministic key derivation from a master key and label (`DeriveKey`)
-- Simple CLI interface for seamless integration in shell pipelines
-- Fully tested with Go test suite
+## 🚀 Features
 
-## Installation
+- 🔐 Generate 4096-bit RSA key pairs (as PEM files or in-memory `[]byte`)
+- 🔑 Encrypt & decrypt RSA private keys using AES-GCM
+- 📦 Symmetric encryption using AES-GCM with optional base64 output
+- 🔁 RSA encryption & decryption over `[]byte` (ideal for Redis/protobuf)
+- 🎯 Deterministic key derivation via HMAC-SHA256 (`DeriveKey`)
+- 🧰 Simple CLI tool for encryption workflows
+- ✅ Fully tested with Go test suite
 
-Install the CLI tool:
+---
+
+## 📦 Installation
+
+Install CLI tool:
+
 ```bash
 go install github.com/eugene-ruby/xencryptor/cmd/xencryptor@latest
-```
+````
 
 Add as a library dependency:
+
 ```bash
 go get github.com/eugene-ruby/xencryptor/xsecrets
 ```
 
-## CLI Usage
+---
 
-### Generate a new RSA key pair
+## 🛠 CLI Usage
+
+### 🔑 Generate a new RSA key pair
 
 ```bash
 xencryptor -newpem mykey
 # Creates mykey.pem and mykey_pub.pem
 ```
 
-### Encrypt an existing private key
+### 🔒 Encrypt private RSA key
 
 ```bash
 cat mykey.pem | xencryptor -encrypt pkp \
-  -master "YOUR_MASTER_KEY" \
-  -label "ENCRYPTION_LABEL" > mykey.enc
+  -master "MY_MASTER_KEY" \
+  -label "LABEL" > mykey.enc
 ```
 
-### Decrypt and verify
+### 🔓 Decrypt private RSA key
 
 ```bash
-echo "BASE64_CIPHERTEXT" | xencryptor -encrypt pkp \
-  -master "YOUR_MASTER_KEY" \
-  -label "ENCRYPTION_LABEL"
+cat mykey.enc | xencryptor -encrypt pkp \
+  -master "MY_MASTER_KEY" \
+  -label "LABEL"
 ```
 
-## Library Usage
+---
+
+## 📚 Library Usage
+
+### 🔐 Generate & Encrypt Keys
 
 ```go
-import (
-    "fmt"
-    "github.com/eugene-ruby/xencryptor/xsecrets"
-)
+privPEM, pubPEM, _ := xsecrets.GenerateKeyPair()
 
-func main() {
-    // Generate PEM files on disk
-    if err := xsecrets.GeneratePEMFiles("mykey"); err != nil {
-        // handle error
-    }
-
-    // Read an existing PEM file into []byte
-    pemBytes := []byte("-----BEGIN RSA PRIVATE KEY-----...")
-
-    // Encrypt private RSA key
-    cipherText, err := xsecrets.EncryptPrivateRSA(pemBytes, "master-secret", "label")
-    if err != nil {
-        // handle error
-    }
-    fmt.Println("Encrypted:", cipherText)
-
-    // Decrypt back to *rsa.PrivateKey
-    privKey, err := xsecrets.DecryptPrivateRSA(cipherText, "master-secret", "label")
-    if err != nil {
-        // handle error
-    }
-    fmt.Printf("Decrypted Key: %%+v\n", privKey)
-}
+cipher, _ := xsecrets.EncryptPrivateRSA(privPEM, "master", "label")
+privKey, _ := xsecrets.DecryptPrivateRSA(cipher, "master", "label")
 ```
 
-## Symmetric Encryption Functions
+### 🔁 Symmetric Encryption (AES-GCM)
 
-| Function | Input | Output | Description |
-|:---------|:------|:-------|:------------|
-| `EncryptBytesWithKey([]byte, []byte)` | plaintext, key | ciphertext []byte | Encrypts raw bytes, returns ciphertext bytes |
-| `EncryptBase64WithKey([]byte, []byte)` | plaintext, key | base64 string | Encrypts bytes and encodes ciphertext as base64 |
-| `DecryptBytesWithKey([]byte, []byte)` | ciphertext, key | plaintext []byte | Decrypts ciphertext bytes into plaintext bytes |
-| `DecryptBase64WithKey(string, []byte)` | base64 ciphertext, key | plaintext []byte | Decodes base64 and decrypts ciphertext |
+```go
+key := xsecrets.DeriveKey([]byte("master"), "payload")
+cipher, _ := xsecrets.EncryptBase64WithKey([]byte("data"), key)
+plain, _ := xsecrets.DecryptBase64WithKey(cipher, key)
+```
 
+### 🔑 Asymmetric Encryption (RSA)
 
-## Testing
+```go
+encrypted, _ := xsecrets.RSAEncryptBytes(pubKey, []byte("secret"))
+decrypted, _ := xsecrets.RSADecryptBytes(encrypted, privKey)
+```
+
+---
+
+## 🔧 API Overview
+
+### 🔒 Symmetric AES-GCM
+
+| Function                                          | Description                        |
+| ------------------------------------------------- | ---------------------------------- |
+| `EncryptBytesWithKey([]byte, []byte)` → `[]byte`  | Raw AES encryption                 |
+| `EncryptBase64WithKey([]byte, []byte)` → `string` | AES + base64 encoding              |
+| `DecryptBytesWithKey([]byte, []byte)` → `[]byte`  | Decrypt raw ciphertext             |
+| `DecryptBase64WithKey(string, []byte)` → `[]byte` | Decode + decrypt base64 ciphertext |
+
+### 🔑 Asymmetric RSA (OAEP)
+
+| Function                                              | Description              |
+| ----------------------------------------------------- | ------------------------ |
+| `RSAEncryptBytes(*rsa.PublicKey, []byte)` → `[]byte`  | Encrypt with public key  |
+| `RSADecryptBytes([]byte, *rsa.PrivateKey)` → `[]byte` | Decrypt with private key |
+
+### 🧰 RSA Key Handling
+
+| Function                                   | Description                         |
+| ------------------------------------------ | ----------------------------------- |
+| `GenerateKeyPair()` → `[]byte` PEM         | In-memory RSA keypair               |
+| `GeneratePEMFiles(name)`                   | Save keypair to disk                |
+| `EncryptPrivateRSA(pem, master, label)`    | AES-encrypts private PEM            |
+| `DecryptPrivateRSA(cipher, master, label)` | AES-decrypts to `*rsa.PrivateKey`   |
+| `DeriveKey(master, label)` → `[32]byte`    | HMAC-SHA256 based deterministic KDF |
+
+---
+
+## 🧪 Testing
 
 Run unit tests:
+
 ```bash
 go test ./xsecrets
 ```
 
-## Contributing
+---
 
-Contributions are welcome! Please open issues or submit pull requests.  
-Remember to follow the Go code style and include tests for new features.
+## 🤝 Contributing
 
-## License
+Issues and PRs are welcome!
+Please include tests for new features and follow idiomatic Go code style.
 
-This project is licensed under the [MIT License](/LICENSE)
+---
 
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE)

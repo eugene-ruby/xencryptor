@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2] - 2025-04-28
+
+### Added
+- Added `RSAEncryptBytes(pub *rsa.PublicKey, plaintext []byte) ([]byte, error)`
+- Added `RSADecryptBytes(ciphertext []byte, priv *rsa.PrivateKey) ([]byte, error)`
+
+## [0.2.1] - 2025-04-27
+
+### Added
+- Added `GenerateKeyPair() ([]byte, []byte, error)` — generates RSA private and public keys in memory, returned as PEM-encoded `[]byte`
 
 ## [0.2.0] - 2025-04-26
 ### Added
